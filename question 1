@@ -1,0 +1,67 @@
+
+**Assignment – 8 Sept 2023**
+
+1. **Contact Account Validation Trigger**
+    1. ****Write a trigger that will dis-allow more than 5 contacts to be associated with a common Contact.
+
+
+
+
+
+trigger ContactTrigger on Contact (before insert) {
+
+    if(Trigger.isinsert && Trigger.isBefore)
+    {
+        ContactTriggerHandler.handelBeforeInsert(Trigger.New);
+    }
+}
+
+
+
+
+
+
+
+
+public class ContactTriggerHandler {
+
+    
+    public static void handelBeforeInsert(List<Contact>newRecords)
+    {
+        List<Id>accountIds =new list<Id>();
+        Map<Id,Id>conIdvsAccIdMap=new Map<Id,Id>();
+        for(Contact con:newRecords)
+        {
+            accountIds.add(con.AccountId);
+            conIdvsAccIdMap.put(con.Id,con.AccountId);
+        }
+        
+        Map<Id,Account> accountRecordMap=new Map<Id,Account>([SELECT ID,Max_Contact_allowed__c,
+                                                              (Select id from contacts) 
+                                                              FROM Account
+                                                              Where Id IN:accountIds
+                                                              ]);
+        
+        for(Id accId :accountRecordMap.keySet())
+        {
+            // contact size=3 max allowed=5
+            Integer numberOfContactsPerAccount=(accountRecordMap.get(accId).contacts).size();
+            
+            system.debug('numberOfContactsPerAccount '+ numberOfContactsPerAccount + ' max '+accountRecordMap.get(accId).Max_Contact_allowed__c );
+            // ABC -6 contacts,MCA=5
+            // 2<3?false
+          //  if(accountRecordMap.get(accId).Max_Contact_allowed__c < numberOfContactsPerAccount)
+          if(5 < numberOfContactsPerAccount)
+            {
+                System.debug('Error with this contact insertion');
+                for(Contact con: newRecords)
+                {
+                    if(con.AccountId==accId)
+                    {
+                        con.addError('THis contact -> account reach the max limit of creation,Max limt=5 ');
+                    }
+                }
+            }
+        }
+    }
+}
