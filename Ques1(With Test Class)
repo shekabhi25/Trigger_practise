@@ -1,0 +1,132 @@
+
+trigger ContactTrigger on Contact (before insert,after update) {
+
+    if(Trigger.isinsert && Trigger.isBefore)
+    {
+        ContactTriggerHandler.handelBeforeInsert(Trigger.New);
+    }
+}
+
+
+***************************************************************************
+public class ContactTriggerHandler {
+
+    
+    public static String handelBeforeInsert(List<Contact>newRecords)
+    {
+        String res;
+        Boolean flag=false;
+        string res2='NOT reached max Limit';
+        List<Id>accountIds =new list<Id>();
+        Map<Id,Id>conIdvsAccIdMap=new Map<Id,Id>();
+        for(Contact con:newRecords)
+        {
+            accountIds.add(con.AccountId);
+            conIdvsAccIdMap.put(con.Id,con.AccountId);
+        }
+        
+        Map<Id,Account> accountRecordMap=new Map<Id,Account>([SELECT ID,Max_Contact_allowed__c,
+                                                              (Select id from contacts) 
+                                                              FROM Account
+                                                              Where Id IN:accountIds
+                                                              ]);
+        
+        for(Id accId :accountRecordMap.keySet())
+        {
+            // contact size=3 max allowed=5
+            Integer numberOfContactsPerAccount=(accountRecordMap.get(accId).contacts).size();
+            
+            system.debug('numberOfContactsPerAccount '+ numberOfContactsPerAccount + ' max '+accountRecordMap.get(accId).Max_Contact_allowed__c );
+            // ABC -6 contacts,MCA=5
+            // 2<3?false
+          //  if(accountRecordMap.get(accId).Max_Contact_allowed__c < numberOfContactsPerAccount)
+          if(5 < numberOfContactsPerAccount)
+            {
+                System.debug('Error with this contact insertion');
+                for(Contact con: newRecords)
+                {
+                    if(con.AccountId==accId)
+                    {
+                       
+                        flag=true;
+                        con.addError('THis contact -> account reach the max limit of creation,Max limt=5 ');
+                    }
+                }
+            }
+        }
+        if(flag)
+        {
+            return  res='LIMIT Error';
+        }
+        return res2;
+    }
+   }
+
+
+******************************************************************
+
+
+
+
+@isTest
+
+public class ContactTriggerHandlerTest {
+@isTest
+    // +ve test case when limit cross
+    public static void testInsertContactsWithinLimit()
+    {
+        
+        Account acc=new Account();
+        acc.name='Acc 113';
+        acc.Max_Contact_allowed__c = 5;
+        insert acc;
+        
+        List<Contact> conList=new list<Contact>();
+        for(Integer i=0;i<3;i++)
+        {
+            contact con=new contact();
+            con.LastName=acc.Name + ' con '+i;
+            con.AccountId=acc.Id;
+            conList.add(con);
+        }
+         Test.startTest();
+        insert conList;
+        Test.stopTest();
+        string Ans=ContactTriggerHandler.handelBeforeInsert(conList);
+        System.debug(Ans);
+System.assertEquals('NOT reached max Limit', Ans);
+        
+    }
+    // -ve test case when limit cross
+    @isTest
+    public static void testInsertContactsbeyoudLimit()
+    {
+        
+        Account acc=new Account();
+        acc.name='Acc 113';
+        acc.Max_Contact_allowed__c = 5;
+        insert acc;
+        
+        List<Contact> conList=new list<Contact>();
+        for(Integer i=0;i<6;i++)
+        {
+            contact con=new contact();
+            con.LastName=acc.Name + ' con '+i;
+            con.AccountId=acc.Id;
+            conList.add(con);
+        }
+         Test.startTest();
+        insert conList;
+        Test.stopTest();
+        string Ans=ContactTriggerHandler.handelBeforeInsert(conList);
+        System.debug(Ans);
+System.assertEquals('LIMIT Error', Ans);
+        
+    }
+    
+}
+
+
+
+
+
