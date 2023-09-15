@@ -1,0 +1,51 @@
+
+
+trigger StudentMarksTrigger on StudentMarks__c (after insert, after update) {
+    if (Trigger.isAfter && (Trigger.isInsert || Trigger.isUpdate)) {
+        StudentMarksTriggerHandler.UpdateOverallScore(Trigger.new);
+    }
+}
+
+
+public class StudentMarksTriggerHandler {
+    public static void UpdateOverallScore(List<StudentMarks__c> newStudentMarks) {
+        Set<Id> studentResultIds = new Set<Id>();
+
+        // Collect StudentResult Ids for related StudentMarks
+        for (StudentMarks__c mark : newStudentMarks) {
+            studentResultIds.add(mark.StudentResult__c);
+        }
+
+        // Query for related StudentResult records and calculate Overall Score2
+        List<StudentResult__c> studentResultsToUpdate = new List<StudentResult__c>();
+        for (Id studentResultId : studentResultIds) {
+            List<StudentMarks__c> relatedMarks = [SELECT Marks_Scored__c, Marks__c FROM StudentMarks__c WHERE StudentResult__c = :studentResultId];
+            Decimal overallScore = 0;
+            Decimal totalMarks = 0;
+
+            // Calculate the sum of Marks Scored and Total Marks
+            for (StudentMarks__c mark : relatedMarks) {
+                overallScore += mark.Marks_Scored__c;
+                totalMarks += mark.Marks__c;
+            }
+
+            // Ensure that the totalMarks do not exceed 500
+            if (totalMarks <= 500) {
+                // Get the StudentResult record and update Overall Score2
+                StudentResult__c studentResult = new StudentResult__c(
+                    Id = studentResultId,
+                    Overall_Score2__c = overallScore
+                );
+
+                studentResultsToUpdate.add(studentResult);
+            }
+           
+        }
+
+        // Update the StudentResult records
+        if (!studentResultsToUpdate.isEmpty()) {
+            update studentResultsToUpdate;
+        }
+    }
+}
+}
