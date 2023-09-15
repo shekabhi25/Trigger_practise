@@ -1,0 +1,81 @@
+
+****************************************
+
+
+
+trigger StudentResultTrigger on StudentResult__c (before insert, before update,after insert, after update) {
+   
+ if (Trigger.isBefore && (Trigger.isInsert || Trigger.isUpdate)) {
+        StudentResultTriggerHandler.CalculateGrade(Trigger.new);
+    }
+ if (Trigger.isAfter && Trigger.isInsert) {
+        StudentResultTriggerHandler.UpdateStudentEvaluationDate(Trigger.new, null);
+    }
+
+    if (Trigger.isAfter && Trigger.isUpdate) {
+        StudentResultTriggerHandler.UpdateStudentEvaluationDate(Trigger.new, Trigger.oldMap);
+    }
+}
+
+
+**********************************************
+
+
+
+public class StudentResultTriggerHandler {
+    public static void CalculateGrade(List<StudentResult__c> studentResults) {
+        for (StudentResult__c studentResult : studentResults) {
+            // Calculate the Grade based on Overall Score2
+            Decimal overallScore2 = studentResult.Overall_Score2__c;
+
+            if (overallScore2 >= 90) {
+                studentResult.Grade__c = 'A+';
+            } else if (overallScore2 >= 80) {
+                studentResult.Grade__c = 'A';
+            } else if (overallScore2 >= 70) {
+                studentResult.Grade__c = 'B+';
+            } else if (overallScore2 >= 60) {
+                studentResult.Grade__c = 'B';
+            } else if (overallScore2 >= 50) {
+                studentResult.Grade__c = 'C';
+            } else {
+                studentResult.Grade__c = 'F';
+            }
+        }
+    }
+    
+ //*****************************************************************************
+    public static void UpdateStudentEvaluationDate(List<StudentResult__c> newStudentResults, Map<Id, StudentResult__c> oldStudentResults) {
+        Set<Id> studentIds = new Set<Id>();
+
+        for (StudentResult__c sr : newStudentResults) {
+            // Check if it's a new record or Grade__c has changed
+            if ((oldStudentResults == null && sr.Grade__c != null) || (oldStudentResults != null && sr.Grade__c != oldStudentResults.get(sr.Id).Grade__c)) {
+                studentIds.add(sr.Student__c);
+            }
+        }
+
+        if (!studentIds.isEmpty()) {
+            List<Student__c> studentsToUpdate = [SELECT Id FROM Student__c WHERE Id IN :studentIds];
+
+            for (Student__c student : studentsToUpdate) {
+                student.Evaluation_Date__c = Date.today();
+            }
+
+            if (!studentsToUpdate.isEmpty()) {
+                update studentsToUpdate;
+            }
+        }
+    }
+}
+}
+
+
+
+*********************************
+
+
+
+
+
+
