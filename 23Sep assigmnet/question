@@ -57,3 +57,29 @@ e. Iterate through the Contract to find out the contract with largest End Date
 
 f. End date is calculated based on Status if status = Active, then end date = start date + term days, if status = cancelled then end date is cancellation date.
 _____________________________________________________________________________________________________________________________________________
+public class ContractsTriggerhandler {
+    public static Contract SetEndDate(List<Contract> newRecords) {
+        Date maxDate = null;
+        Contract ansContract = null; // ContractWithLargestEndDate
+        
+        for (Contract con : newRecords) {
+            Date endDate = null;
+            
+            if (con.Status__c == 'Active') {
+                endDate = con.StartDate__c.addDays(con.Term_Days__c);
+                if (maxDate == null || endDate > maxDate) {
+                    maxDate = endDate;
+                    ansContract = con;
+                }
+            } else if (con.Status__c == 'Cancelled') {
+                endDate = con.CancellationDate__c;
+                if (maxDate == null || endDate > maxDate) {
+                    maxDate = endDate;
+                    ansContract = con;
+                }
+            }
+        }
+        
+        return ansContract; // contractWithLargestEndDate
+    }
+}
