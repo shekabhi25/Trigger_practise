@@ -1,0 +1,59 @@
+______________________________________________________________________________________________________________________________________________
+/* question 1. Write a Trigger on Account on insert and update to search and throw error if another 
+Account with matching Email Id and Phone Number Combination already exists. Ensure its scaled to handle ~200+ insert/update
+*/
+______________________________________________________________________________________________________________________________________________
+
+
+// Trigger on Account to check for duplicate Email and Phone combinations
+trigger AccountTrigger on Account (before insert, before update) {
+    if (Trigger.isBefore) {
+        AccountTriggerHandler.checkEmailPhoneDuplicate(Trigger.new, Trigger.oldMap);
+    }
+}
+
+public class AccountTriggerHandler {
+    public static void checkEmailPhoneDuplicate(List<Account> newRecords, Map<Id, Account> oldMap) {
+        Set<String> existingEmailPhoneCombos = new Set<String>();
+
+        // Check for duplicates in the new records
+        for (Account acc : newRecords) {
+            String newEmailPhoneString = acc.Email + acc.Phone;
+            if (existingEmailPhoneCombos.contains(newEmailPhoneString)) {
+                acc.addError("This account email and phone combination is a duplicate.");
+            } else {
+                existingEmailPhoneCombos.add(newEmailPhoneString);
+            }
+        }
+
+        // Check for updates
+        if (oldMap != null) {
+            for (Account acc : newRecords) {
+                Account oldAccount = oldMap.get(acc.Id);
+                if (oldAccount != null && (oldAccount.Email != acc.Email || oldAccount.Phone != acc.Phone)) {
+                    String newEmailPhoneString = acc.Email + acc.Phone;
+                    if (existingEmailPhoneCombos.contains(newEmailPhoneString)) {
+                        acc.addError("This account email and phone combination is a duplicate.");
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+________________________________________________________________________________________________________________________________________________
+Question 2: Write an Apex Function to take Input of List of Contracts with following fields
+
+a. Start Date
+
+b. Term days (number of days in contract I.e., 90 days, 365 days)
+
+c. Cancellation Date
+
+d. Status - (Active or Cancelled)
+
+e. Iterate through the Contract to find out the contract with largest End Date
+
+f. End date is calculated based on Status if status = Active, then end date = start date + term days, if status = cancelled then end date is cancellation date.
+_____________________________________________________________________________________________________________________________________________
