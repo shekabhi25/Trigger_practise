@@ -83,3 +83,45 @@ public class ContractsTriggerhandler {
         return ansContract; // contractWithLargestEndDate
     }
 }
+
+
+_______________________________________________________________________________________________________________________
+question 3:
+Create following Apex method that takes List of Account, and finds all the accounts which are duplicate (have same name)
+in the list and keep the return the latest unique account with largest Created Date
+
+I.e [ A1, Created Date = 1 Jan,2020 ; A1, Created Date = 1 Dec, 2023] => return [A1, Created Date= 1 Dec, 2023]
+
+_________________________________________________________________________________________________________
+
+
+
+public class AccountDuplicateFinder {
+    public static List<Account> findLatestUniqueAccounts(List<Account> accounts) {
+        Map<String, Account> accountMap = new Map<String, Account>();
+        
+        // Iterate through the accounts to find the latest unique accounts
+        for (Account acc : accounts) {
+            String accountName = acc.Name;
+            
+            if (accountMap.containsKey(accountName)) {
+                // Check if the current account has a larger Created Date
+                if (acc.CreatedDate > accountMap.get(accountName).CreatedDate) {
+                    accountMap.put(accountName, acc);
+                }
+            } else {
+                accountMap.put(accountName, acc);
+            }
+        }
+        
+        // Return the latest unique accounts as a list
+        List<Account> resultAccounts = new List<Account>(accountMap.values());
+        return resultAccounts;
+    }
+}
+
+
+
+_________________________________________________________________________________________
+
+
